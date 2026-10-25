@@ -50,7 +50,7 @@ jobs:
       GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
       RECIPIENT_EMAILS: ${{ secrets.RECIPIENT_EMAILS }}
       # Optional non-secret tuning via Settings → Secrets and variables → Variables
-      GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
+      GEMINI_MODEL: ${{ vars.GEMINI_MODEL || 'gemini-3.5-flash-lite' }}
       RSS_FEEDS: ${{ vars.RSS_FEEDS }}
       REPORT_TIMEZONE: ${{ vars.REPORT_TIMEZONE || 'Asia/Bangkok' }}
       LOOKBACK_HOURS: ${{ vars.LOOKBACK_HOURS }}

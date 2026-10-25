@@ -56,7 +56,7 @@ logger = logging.getLogger("financial_news_agent")
 # Constants
 # --------------------------------------------------------------------------- #
 
-DEFAULT_MODEL = "gemini-pro-latest"
+DEFAULT_MODEL = "gemini-3.5-flash-lite"
 
 DEFAULT_FEEDS: tuple[str, ...] = (
     # CNBC – Top News
