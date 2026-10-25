@@ -1,0 +1,5 @@
+google-genai>=1.20.0,<2
+feedparser>=6.0.11,<7
+python-dotenv>=1.0.1,<2
+# Already a dependency of google-genai; pinned explicitly because agent.py imports it directly.
+pydantic>=2.7,<3

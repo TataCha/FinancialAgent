@@ -1,0 +1,80 @@
+name: Daily Financial Brief
+
+on:
+  schedule:
+    # 23:00 UTC = 06:00 Asia/Bangkok (UTC+7), every day.
+    # GitHub cron is best-effort and may start a few minutes late.
+    - cron: "0 23 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Generate the brief without sending email"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: daily-brief
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Run tests
+        run: pytest -q
+
+  brief:
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GMAIL_ADDRESS: ${{ secrets.GMAIL_ADDRESS }}
+      GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+      RECIPIENT_EMAILS: ${{ secrets.RECIPIENT_EMAILS }}
+      # Optional non-secret tuning via Settings → Secrets and variables → Variables
+      GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
+      RSS_FEEDS: ${{ vars.RSS_FEEDS }}
+      REPORT_TIMEZONE: ${{ vars.REPORT_TIMEZONE || 'Asia/Bangkok' }}
+      LOOKBACK_HOURS: ${{ vars.LOOKBACK_HOURS }}
+      DRY_RUN: ${{ inputs.dry_run && 'true' || 'false' }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Generate and send brief
+        run: python agent.py --output-dir output
+
+      - name: Upload newsletter artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: daily-brief-${{ github.run_id }}
+          path: output/
+          retention-days: 14
+          if-no-files-found: ignore
