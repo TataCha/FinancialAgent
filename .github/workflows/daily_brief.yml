@@ -2,9 +2,9 @@ name: Daily Financial Brief
 
 on:
   schedule:
-    # 23:00 UTC = 06:00 Asia/Bangkok (UTC+7), every day.
+    # 22:47 UTC = 05:47 Asia/Bangkok (UTC+7), every day (avoids top-of-the-hour queue delay).
     # GitHub cron is best-effort and may start a few minutes late.
-    - cron: "0 23 * * *"
+    - cron: "47 22 * * *"
   workflow_dispatch:
     inputs:
       dry_run:
