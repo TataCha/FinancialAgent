@@ -492,6 +492,26 @@ class TestRun:
         assert code == 2
         assert client.models.calls == []
 
+    def test_primary_model_fallback_on_503(self, tmp_path: Path):
+        fetcher = make_fetcher({"https://a.com/rss": FEED_A})
+        # Simulate primary model failing 4 times with 503 ServerError,
+        # then fallback model (gemini-3.5-flash-lite) succeeding.
+        err = agent.genai_errors.ServerError(503, {}, None)
+        client = FakeClient(err, err, err, err, json.dumps(brief_dict()))
+        code = run(
+            self._config(GEMINI_MODEL="gemini-3.8-flash"),
+            dry_run=True,
+            output_dir=tmp_path,
+            fetcher=fetcher,
+            client=client,
+            now=NOW,
+            sleep=lambda _: None,
+        )
+        assert code == 0
+        assert len(client.models.calls) == 5
+        assert client.models.calls[0]["model"] == "gemini-3.8-flash"
+        assert client.models.calls[4]["model"] == "gemini-3.5-flash-lite"
+
     def test_main_config_error_exit_code(self, monkeypatch):
         monkeypatch.setattr(agent, "load_dotenv", lambda *a, **k: None)
         for key in ("GEMINI_API_KEY", "GMAIL_ADDRESS", "GMAIL_APP_PASSWORD", "DRY_RUN"):

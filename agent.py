@@ -756,6 +756,7 @@ def run(
     client: Any = None,
     now: datetime | None = None,
     smtp_factory: Callable[..., smtplib.SMTP] = smtplib.SMTP_SSL,
+    sleep: Callable[[float], None] = time.sleep,
 ) -> int:
     """Execute the full pipeline. Returns a process exit code."""
     now = now or datetime.now(timezone.utc)
@@ -775,9 +776,24 @@ def run(
         return 2
 
     client = client or genai.Client(api_key=config.gemini_api_key)
-    brief = generate_brief(client, config.gemini_model, articles, report_date)
+    active_model = config.gemini_model
+    try:
+        brief = generate_brief(client, active_model, articles, report_date, sleep=sleep)
+    except Exception as exc:
+        fallback = "gemini-3.5-flash-lite"
+        if active_model != fallback and _is_retryable(exc):
+            logger.warning(
+                "Primary model %s failed (%s); falling back to %s",
+                active_model,
+                exc,
+                fallback,
+            )
+            active_model = fallback
+            brief = generate_brief(client, active_model, articles, report_date, sleep=sleep)
+        else:
+            raise
 
-    html_body = render_html(brief, articles, report_date, config.gemini_model)
+    html_body = render_html(brief, articles, report_date, active_model)
     text_body = render_text(brief, articles, report_date)
     subject = build_subject(brief, report_date)
 
